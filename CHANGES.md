@@ -5,6 +5,9 @@
 - Added `Rasterband::fill`
   - <https://github.com/georust/gdal/pull/528>
 
+- Added `Rasterband::set_statistics`
+  - <https://github.com/georust/gdal/pull/529>  
+
 - Added `Dataset::rasterbands`.
   - <https://github.com/georust/gdal/pull/523>
 
