@@ -32,7 +32,7 @@ pub enum GdalDataType {
     /// Unknown or unspecified type
     Unknown = GDALDataType::GDT_Unknown,
     /// Eight bit unsigned integer
-    UInt8 = GDALDataType::GDT_Byte,
+    UInt8 = GDALDataType::GDT_UInt8,
     /// Eight bit signed integer
     #[cfg(any(all(major_ge_3, minor_ge_7), major_ge_4))]
     Int8 = GDALDataType::GDT_Int8,
@@ -264,7 +264,7 @@ impl TryFrom<u32> for GdalDataType {
         #[allow(non_upper_case_globals)]
         match value {
             GDT_Unknown => Ok(GdalDataType::Unknown),
-            GDT_Byte => Ok(GdalDataType::UInt8),
+            GDT_UInt8 => Ok(GdalDataType::UInt8),
             #[cfg(any(all(major_ge_3, minor_ge_7), major_ge_4))]
             GDT_Int8 => Ok(GdalDataType::Int8),
             GDT_UInt16 => Ok(GdalDataType::UInt16),
@@ -339,7 +339,7 @@ pub trait GdalType {
 /// Provides evidence `u8` is a valid [`GDALDataType`].
 impl GdalType for u8 {
     fn gdal_ordinal() -> GDALDataType::Type {
-        GDALDataType::GDT_Byte
+        GDALDataType::GDT_UInt8
     }
 }
 
@@ -426,7 +426,7 @@ mod tests {
             assert_eq!(t.bits(), t.bytes() * 8, "{t}");
             let name = t.name();
             match t.gdal_ordinal() {
-                GDT_Byte | GDT_UInt16 | GDT_Int16 | GDT_UInt32 | GDT_Int32 => {
+                GDT_UInt8 | GDT_UInt16 | GDT_Int16 | GDT_UInt32 | GDT_Int32 => {
                     assert!(t.is_integer(), "{}", &name);
                     assert!(!t.is_floating(), "{}", &name);
                 }
@@ -448,7 +448,7 @@ mod tests {
                 o => panic!("unknown type ordinal '{o}'"),
             }
             match t.gdal_ordinal() {
-                GDT_Byte | GDT_UInt16 | GDT_UInt32 => {
+                GDT_UInt8 | GDT_UInt16 | GDT_UInt32 => {
                     assert!(!t.is_signed(), "{}", &name);
                 }
                 #[cfg(all(major_ge_3, minor_ge_5))]
