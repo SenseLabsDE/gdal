@@ -1,18 +1,13 @@
 use std::{
     borrow::Borrow,
     ffi::{c_char, c_int, CString},
-    mem::ManuallyDrop,
-    path::{Path, PathBuf},
     ptr::{null, null_mut},
 };
 
 use gdal_sys::{GDALMultiDimTranslate, GDALMultiDimTranslateOptions};
 
-use crate::{
-    errors::*,
-    utils::{_last_null_pointer_err, _path_to_c_string},
-    Dataset,
-};
+use crate::programs::raster::ProgramDestination;
+use crate::{errors::*, utils::_last_null_pointer_err, Dataset};
 
 /// Wraps a [GDALMultiDimTranslateOptions] object.
 ///
@@ -81,82 +76,6 @@ impl TryFrom<Vec<&str>> for MultiDimTranslateOptions {
     }
 }
 
-pub enum MultiDimTranslateDestination {
-    Path(CString),
-    Dataset {
-        dataset: ManuallyDrop<Dataset>,
-        drop: bool,
-    },
-}
-
-impl TryFrom<&str> for MultiDimTranslateDestination {
-    type Error = GdalError;
-
-    fn try_from(path: &str) -> Result<Self> {
-        Self::path(path)
-    }
-}
-
-impl TryFrom<&Path> for MultiDimTranslateDestination {
-    type Error = GdalError;
-
-    fn try_from(path: &Path) -> Result<Self> {
-        Self::path(path)
-    }
-}
-
-impl TryFrom<PathBuf> for MultiDimTranslateDestination {
-    type Error = GdalError;
-
-    fn try_from(path: PathBuf) -> Result<Self> {
-        Self::path(path)
-    }
-}
-
-impl From<Dataset> for MultiDimTranslateDestination {
-    fn from(dataset: Dataset) -> Self {
-        Self::dataset(dataset)
-    }
-}
-
-impl Drop for MultiDimTranslateDestination {
-    fn drop(&mut self) {
-        match self {
-            Self::Path(_) => {}
-            Self::Dataset { dataset, drop } => {
-                if *drop {
-                    unsafe {
-                        ManuallyDrop::drop(dataset);
-                    }
-                }
-            }
-        }
-    }
-}
-
-impl MultiDimTranslateDestination {
-    pub fn dataset(dataset: Dataset) -> Self {
-        Self::Dataset {
-            dataset: ManuallyDrop::new(dataset),
-            drop: true,
-        }
-    }
-
-    pub fn path<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let c_path = _path_to_c_string(path.as_ref())?;
-        Ok(Self::Path(c_path))
-    }
-
-    unsafe fn do_no_drop_dataset(&mut self) {
-        match self {
-            Self::Path(_) => {}
-            Self::Dataset { dataset: _, drop } => {
-                *drop = false;
-            }
-        }
-    }
-}
-
 /// Converts raster data between different formats.
 ///
 /// Wraps [GDALMultiDimTranslate].
@@ -167,7 +86,7 @@ impl MultiDimTranslateDestination {
 ///
 pub fn multi_dim_translate<D: Borrow<Dataset>>(
     input: &[D],
-    destination: MultiDimTranslateDestination,
+    destination: ProgramDestination,
     options: Option<MultiDimTranslateOptions>,
 ) -> Result<Dataset> {
     _multi_dim_translate(
@@ -179,12 +98,12 @@ pub fn multi_dim_translate<D: Borrow<Dataset>>(
 
 fn _multi_dim_translate(
     input: &[&Dataset],
-    mut destination: MultiDimTranslateDestination,
+    mut destination: ProgramDestination,
     options: Option<MultiDimTranslateOptions>,
 ) -> Result<Dataset> {
     let (psz_dest_option, h_dst_ds) = match &destination {
-        MultiDimTranslateDestination::Path(c_path) => (Some(c_path), null_mut()),
-        MultiDimTranslateDestination::Dataset { dataset, .. } => (None, dataset.c_dataset()),
+        ProgramDestination::Path(c_path) => (Some(c_path), null_mut()),
+        ProgramDestination::Dataset { dataset, .. } => (None, dataset.c_dataset()),
     };
 
     let psz_dest = psz_dest_option.map(|x| x.as_ptr()).unwrap_or_else(null);
