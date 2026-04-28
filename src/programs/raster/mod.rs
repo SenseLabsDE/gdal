@@ -2,11 +2,13 @@ mod contour;
 mod footprint;
 mod mdimtranslate;
 mod vrt;
+mod warp;
 
 pub use contour::*;
 pub use footprint::{footprint, FootprintOptions};
 pub use mdimtranslate::{multi_dim_translate, MultiDimTranslateOptions};
 pub use vrt::*;
+pub use warp::{warp, WarpOptions};
 
 use std::ffi::CString;
 use std::mem::ManuallyDrop;
